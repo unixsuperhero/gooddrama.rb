@@ -1,3 +1,5 @@
+#!/Users/MacbookPro/.rbenv/versions/2.0.0-p247/bin/ruby
+
 require 'uri'
 require 'net/http'
 require 'pp'
@@ -35,11 +37,11 @@ class GoodDrama
   end
 
   def embed
-    @embed ||= body.scan(embed_regex).grep(/part_#{part}/i).first
+    @embed ||= body.scan(file_regex).grep(/mp4|flv/i).first
   end
 
   def file_regex
-    /https?:..[^'"]*part_#{part}[^'"]*/i
+    /https?:..[^'"]*part.#{part}[^'"]*/i
   end
 
   def file
@@ -61,7 +63,11 @@ class GoodDrama
   end
 end
 
+wgets = []
 GoodDrama.new(ARGV[0]).files.each do |file|
-  `open '#{file}'`
+  wgets.push "wget -cq '#{file}' &"
+  `open '#{file}'` unless !!ARGV[1]
 end
+
+puts wgets
 
