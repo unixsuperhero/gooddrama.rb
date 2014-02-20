@@ -42,7 +42,7 @@ class GoodDrama
   end
 
   def file_regex
-    /https?:..[^'"]*part.#{part}[^'"]*/i
+    /https?:..[^'"]*(?:part|clip).?#{part}[^'"]*/i
   end
 
   def file
