@@ -1,74 +1,26 @@
 #!/Users/MacbookPro/.rbenv/versions/2.0.0-p247/bin/ruby
 
-require 'uri'
-require 'net/http'
-require 'pp'
+if ARGV[0] =~ /^(--?edit|-e)$/i
+  system("vim -O '#{__FILE__}' '#{File.dirname(File.realpath(__FILE__))}/lib/gooddrama.rb'")
+else
+  require "#{File.dirname(File.realpath(__FILE__))}/lib/gooddrama"
 
-class GoodDrama
-  attr_accessor :uri, :parts, :embeds, :files
-  attr_accessor :response, :body, :part, :mirror
-
-  def initialize(uri, part=1, mirror=1)
-    @uri = URI(uri)
-    @part = part
-    @mirror = mirror.to_i
-    @embeds = []
-    @files = []
+  wgets = []
+  GoodDrama.new(ARGV[0], part: 1, mirror: ARGV[1] || 1).files.uniq{|f|
+    File.basename(f).gsub(/[?&].*/,'')
+  }.each do |file|
+    next if file.strip.length == 0
+    wgets.push "download '#{file}'"
+    # `open '#{file}'` unless !!ARGV[2]
   end
 
-  def response
-    @response ||= Net::HTTP.get_response(uri)
-  end
-
-  def body
-    #@body = IO.read('test.html')
-    @body ||= response.body
-  end
-
-  def parts_regex
-    /href=['"]([^"']*\/#{mirror}-(\d\d*))["'][^>]*>part\s*\d\d*/i
-  end
-
-  def parts
-    @parts ||= [[uri,'1']] + body.scan(parts_regex)
-  end
-
-  def embed_regex
-    /https?:..[^'"]*embed.php[^'"]*/i
-  end
-
-  def embed
-    @embed ||= body.scan(file_regex).grep(/mp4|flv/i).first(mirror).last
-  end
-
-  def file_regex
-    /https?:..[^'"]*(?:part|clip).?#{part}[^'"]*/i
-  end
-
-  def file
-    uri = URI(embed)
-    r = Net::HTTP.get_response(uri)
-    URI.decode r.body.scan(file_regex).first.to_s
-  end
-
-  def embeds
-    parts.map do |url,part|
-      (url == @url) ? embed : GoodDrama.new(url,part,mirror).embed
-    end
-  end
-
-  def files
-    parts.map do |url,part|
-      (url == @url) ? file : GoodDrama.new(url,part,mirror).file
-    end
+  puts wgets
+  printf "\nAuto-download? (y|n) [y]: "
+  yn = $stdin.gets
+  yn.chomp!
+  if yn.length == 0 || yn =~ /y/i
+    puts
+    puts wgets.map{|cmd| `#{cmd}` }
   end
 end
-
-wgets = []
-GoodDrama.new(ARGV[0], 1, ARGV[1] || 1).files.each do |file|
-  wgets.push "wget -cb '#{file}'"
-  # `open '#{file}'` unless !!ARGV[2]
-end
-
-puts wgets
 
